@@ -1,6 +1,6 @@
-using TrmlWeather.Models;
+using MyWeather.Models;
 
-namespace TrmlWeather.Services;
+namespace MyWeather.Services;
 
 /// <summary>
 /// Mock weather service with seasonal scenarios typical for Örebro/central Sweden.

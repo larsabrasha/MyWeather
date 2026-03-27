@@ -1,7 +1,7 @@
 using SkiaSharp;
-using TrmlWeather.Models;
+using MyWeather.Models;
 
-namespace TrmlWeather.Rendering;
+namespace MyWeather.Rendering;
 
 public static class WeatherIconRenderer
 {

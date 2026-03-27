@@ -1,13 +1,13 @@
 using System.Text.Json;
-using TrmlWeather.Models;
+using MyWeather.Models;
 
-namespace TrmlWeather.Services;
+namespace MyWeather.Services;
 
 public class SmhiWeatherService : IWeatherService
 {
     private static readonly HttpClient HttpClient = new()
     {
-        DefaultRequestHeaders = { { "User-Agent", "TrmlWeather/1.0" } }
+        DefaultRequestHeaders = { { "User-Agent", "MyWeather/1.0" } }
     };
 
     public async Task<List<HourlyForecast>> GetForecastsAsync(double latitude, double longitude)

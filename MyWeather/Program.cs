@@ -1,12 +1,7 @@
-using TrmlWeather.Rendering;
-using TrmlWeather.Services;
+using MyWeather.Rendering;
+using MyWeather.Services;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.WebHost.UseKestrel(options =>
-{
-    options.ListenAnyIP(5001);
-});
 
 var weatherSource = builder.Configuration.GetValue<string>("Weather:Source") ?? "smhi";
 

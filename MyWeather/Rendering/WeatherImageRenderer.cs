@@ -1,8 +1,8 @@
 using SkiaSharp;
-using TrmlWeather.Helpers;
-using TrmlWeather.Models;
+using MyWeather.Helpers;
+using MyWeather.Models;
 
-namespace TrmlWeather.Rendering;
+namespace MyWeather.Rendering;
 
 public static class WeatherImageRenderer
 {

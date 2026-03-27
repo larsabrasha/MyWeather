@@ -1,6 +1,6 @@
-using TrmlWeather.Models;
+using MyWeather.Models;
 
-namespace TrmlWeather.Helpers;
+namespace MyWeather.Helpers;
 
 public static class SwedishDateHelper
 {
