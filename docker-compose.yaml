@@ -1,0 +1,7 @@
+services:
+  myweather:
+    image: ghcr.io/larsabrasha/myweather:latest
+    ports:
+      - "5001:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
