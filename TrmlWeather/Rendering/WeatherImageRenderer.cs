@@ -8,11 +8,14 @@ public static class WeatherImageRenderer
 {
     private const int Width = 1024;
     private const int Height = 768;
-    private const float TimelineY = Height * 0.5f;
     private const float LeftMargin = 40f;
     private const float RightMargin = 40f;
     private const float TimelineWidth = Width - LeftMargin - RightMargin;
-    private const float PixelsPerDegree = 15f;
+    private const float MinTemp = -15f;
+    private const float MaxTemp = 35f;
+    private const float GraphTop = 210f;
+    private const float GraphBottom = 700f;
+    private const float TimelineY = GraphBottom - (-MinTemp / (MaxTemp - MinTemp)) * (GraphBottom - GraphTop);
 
     public static byte[] Render(List<HourlyForecast> forecasts)
     {
@@ -55,7 +58,6 @@ public static class WeatherImageRenderer
         var monthName = SwedishDateHelper.GetMonthName(now.Month);
         canvas.DrawText(dayName, Width - 50, 55, SKTextAlign.Right, dateFont, paint);
         canvas.DrawText($"{now.Day} {monthName}", Width - 50, 90, SKTextAlign.Right, dateSmallFont, paint);
-        canvas.DrawText($"{now.Year}", Width - 50, 125, SKTextAlign.Right, dateSmallFont, paint);
     }
 
     private static void DrawTimeline(SKCanvas canvas)
@@ -153,5 +155,5 @@ public static class WeatherImageRenderer
 
     private static float HourToX(float hour) => LeftMargin + (hour / 24f) * TimelineWidth;
 
-    private static float TempToY(float temp) => TimelineY - (temp * PixelsPerDegree);
+    private static float TempToY(float temp) => GraphBottom - ((temp - MinTemp) / (MaxTemp - MinTemp)) * (GraphBottom - GraphTop);
 }
