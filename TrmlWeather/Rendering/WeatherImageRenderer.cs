@@ -1,7 +1,6 @@
 using SkiaSharp;
 using TrmlWeather.Helpers;
 using TrmlWeather.Models;
-using TrmlWeather.Services;
 
 namespace TrmlWeather.Rendering;
 
@@ -15,9 +14,8 @@ public static class WeatherImageRenderer
     private const float TimelineWidth = Width - LeftMargin - RightMargin;
     private const float PixelsPerDegree = 15f;
 
-    public static byte[] Render()
+    public static byte[] Render(List<HourlyForecast> forecasts)
     {
-        var forecasts = SampleWeatherService.GetForecasts();
         var now = DateTime.Now;
 
         using var surface = SKSurface.Create(new SKImageInfo(Width, Height));
@@ -50,7 +48,7 @@ public static class WeatherImageRenderer
         WeatherIconRenderer.Draw(canvas, current.Condition, 80, 90, 50);
 
         canvas.DrawText($"{current.Temperature:+0;-0;0}°C", 160, 100, SKTextAlign.Left, bigFont, paint);
-        canvas.DrawText("4 m/s", 160, 135, SKTextAlign.Left, medFont, paint);
+        canvas.DrawText($"{current.WindSpeed:0} m/s", 160, 135, SKTextAlign.Left, medFont, paint);
         canvas.DrawText(SwedishDateHelper.GetConditionText(current.Condition), 160, 165, SKTextAlign.Left, medFont, paint);
 
         var dayName = SwedishDateHelper.GetDayName(now.DayOfWeek);
