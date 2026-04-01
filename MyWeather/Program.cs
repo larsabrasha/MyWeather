@@ -5,15 +5,19 @@ var builder = WebApplication.CreateBuilder(args);
 
 var weatherSource = builder.Configuration.GetValue<string>("Weather:Source") ?? "smhi";
 
-builder.Services.AddHttpClient("Smhi", client =>
+builder.Services.AddHttpClient("Yr", (sp, client) =>
 {
-    client.DefaultRequestHeaders.Add("User-Agent", "MyWeather/1.0");
+    var config = sp.GetRequiredService<IConfiguration>();
+    var baseUrl = config.GetValue<string>("Weather:YrBaseUrl")
+                  ?? "https://api.met.no/weatherapi/locationforecast/2.0/";
+    client.BaseAddress = new Uri(baseUrl);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("MyWeather/1.0 (github.com/larsabrasha/myweather)");
 });
 
 if (weatherSource.Equals("mock", StringComparison.OrdinalIgnoreCase))
     builder.Services.AddSingleton<IWeatherService, MockWeatherService>();
 else
-    builder.Services.AddSingleton<IWeatherService, SmhiWeatherService>();
+    builder.Services.AddSingleton<IWeatherService, YrWeatherService>();
 
 var app = builder.Build();
 

@@ -48,7 +48,7 @@ public static class WeatherImageRenderer
         using var dateFont = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 32);
         using var dateSmallFont = new SKFont(SKTypeface.FromFamilyName("Arial"), 28);
 
-        WeatherIconRenderer.Draw(canvas, current.Condition, 80, 90, 50);
+        WeatherIconRenderer.Draw(canvas, current.SymbolCode, 80, 90, 50);
 
         canvas.DrawText($"{current.Temperature:+0;-0;0}°C", 160, 100, SKTextAlign.Left, bigFont, paint);
         canvas.DrawText($"{current.WindSpeed:0} m/s", 160, 135, SKTextAlign.Left, medFont, paint);
@@ -131,7 +131,7 @@ public static class WeatherImageRenderer
 
             bool aboveLine = f.Temperature >= 0;
             float iconY = aboveLine ? y - 75 : y + 50;
-            WeatherIconRenderer.Draw(canvas, f.Condition, x, iconY, 24);
+            WeatherIconRenderer.Draw(canvas, f.SymbolCode, x, iconY, 24);
 
             float tempLabelY = aboveLine ? y - 30 : y + 100;
             canvas.DrawText($"{f.Temperature:0}°", x, tempLabelY, SKTextAlign.Center, tempFont, paint);
