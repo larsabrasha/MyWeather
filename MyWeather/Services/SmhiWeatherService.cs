@@ -5,10 +5,12 @@ namespace MyWeather.Services;
 
 public class SmhiWeatherService : IWeatherService
 {
-    private static readonly HttpClient HttpClient = new()
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    public SmhiWeatherService(IHttpClientFactory httpClientFactory)
     {
-        DefaultRequestHeaders = { { "User-Agent", "MyWeather/1.0" } }
-    };
+        _httpClientFactory = httpClientFactory;
+    }
 
     public async Task<List<HourlyForecast>> GetForecastsAsync(double latitude, double longitude)
     {
@@ -16,7 +18,8 @@ public class SmhiWeatherService : IWeatherService
         var latStr = latitude.ToString("F6", System.Globalization.CultureInfo.InvariantCulture);
         var url = $"https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/{lonStr}/lat/{latStr}/data.json";
 
-        var json = await HttpClient.GetStringAsync(url);
+        var httpClient = _httpClientFactory.CreateClient("Smhi");
+        var json = await httpClient.GetStringAsync(url);
         var doc = JsonDocument.Parse(json);
 
         var today = DateTime.Now.Date;

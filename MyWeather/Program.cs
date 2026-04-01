@@ -5,6 +5,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 var weatherSource = builder.Configuration.GetValue<string>("Weather:Source") ?? "smhi";
 
+builder.Services.AddHttpClient("Smhi", client =>
+{
+    client.DefaultRequestHeaders.Add("User-Agent", "MyWeather/1.0");
+});
+
 if (weatherSource.Equals("mock", StringComparison.OrdinalIgnoreCase))
     builder.Services.AddSingleton<IWeatherService, MockWeatherService>();
 else
