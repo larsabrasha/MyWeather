@@ -22,6 +22,7 @@ public class YrWeatherService : IWeatherService
         var doc = JsonDocument.Parse(json);
 
         var today = DateTime.Now.Date;
+        var tomorrow = today.AddDays(1);
         var forecasts = new List<HourlyForecast>();
 
         foreach (var timeseries in doc.RootElement
@@ -36,9 +37,13 @@ public class YrWeatherService : IWeatherService
             {
                 hour = time.Hour;
             }
-            else if (time.Date == today.AddDays(1) && time.Hour == 0)
+            else if (time.Date == tomorrow)
             {
-                hour = 24;
+                hour = 24 + time.Hour;
+            }
+            else if (time.Date == tomorrow.AddDays(1) && time.Hour == 0)
+            {
+                hour = 48;
             }
             else
             {
@@ -63,38 +68,6 @@ public class YrWeatherService : IWeatherService
             }
 
             forecasts.Add(new HourlyForecast(hour, temperature, MapSymbolCode(symbolCode), windSpeed, symbolCode));
-        }
-
-        if (forecasts.Count < 4)
-        {
-            var tomorrow = today.AddDays(1);
-            foreach (var timeseries in doc.RootElement
-                         .GetProperty("properties")
-                         .GetProperty("timeseries")
-                         .EnumerateArray())
-            {
-                var time = DateTime.Parse(timeseries.GetProperty("time").GetString()!).ToLocalTime();
-                if (time.Date != tomorrow) continue;
-
-                var instant = timeseries.GetProperty("data")
-                    .GetProperty("instant")
-                    .GetProperty("details");
-
-                var temperature = instant.GetProperty("air_temperature").GetSingle();
-                var windSpeed = instant.GetProperty("wind_speed").GetSingle();
-
-                var symbolCode = "cloudy";
-                if (timeseries.GetProperty("data").TryGetProperty("next_1_hours", out var next1))
-                {
-                    symbolCode = next1.GetProperty("summary").GetProperty("symbol_code").GetString()!;
-                }
-                else if (timeseries.GetProperty("data").TryGetProperty("next_6_hours", out var next6))
-                {
-                    symbolCode = next6.GetProperty("summary").GetProperty("symbol_code").GetString()!;
-                }
-
-                forecasts.Add(new HourlyForecast(time.Hour, temperature, MapSymbolCode(symbolCode), windSpeed, symbolCode));
-            }
         }
 
         return forecasts.OrderBy(f => f.Hour).ToList();

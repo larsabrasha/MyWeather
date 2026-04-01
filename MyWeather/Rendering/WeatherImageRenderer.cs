@@ -26,7 +26,7 @@ public static class WeatherImageRenderer
         canvas.Clear(SKColors.White);
 
         DrawHeader(canvas, forecasts, now);
-        DrawTimeline(canvas);
+        DrawTimeline(canvas, now);
         DrawTemperatureCurve(canvas, forecasts);
         DrawHourlyMarkers(canvas, forecasts);
         DrawCurrentTimeLine(canvas, now);
@@ -45,22 +45,15 @@ public static class WeatherImageRenderer
 
         using var bigFont = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 64);
         using var medFont = new SKFont(SKTypeface.FromFamilyName("Arial"), 28);
-        using var dateFont = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 32);
-        using var dateSmallFont = new SKFont(SKTypeface.FromFamilyName("Arial"), 28);
 
         WeatherIconRenderer.Draw(canvas, current.SymbolCode, 80, 90, 50);
 
         canvas.DrawText($"{current.Temperature:+0;-0;0}°C", 160, 100, SKTextAlign.Left, bigFont, paint);
         canvas.DrawText($"{current.WindSpeed:0} m/s", 160, 135, SKTextAlign.Left, medFont, paint);
         canvas.DrawText(SwedishDateHelper.GetConditionText(current.Condition), 160, 165, SKTextAlign.Left, medFont, paint);
-
-        var dayName = SwedishDateHelper.GetDayName(now.DayOfWeek);
-        var monthName = SwedishDateHelper.GetMonthName(now.Month);
-        canvas.DrawText(dayName, Width - 50, 55, SKTextAlign.Right, dateFont, paint);
-        canvas.DrawText($"{now.Day} {monthName}", Width - 50, 90, SKTextAlign.Right, dateSmallFont, paint);
     }
 
-    private static void DrawTimeline(SKCanvas canvas)
+    private static void DrawTimeline(SKCanvas canvas, DateTime now)
     {
         using var linePaint = new SKPaint
         {
@@ -71,16 +64,29 @@ public static class WeatherImageRenderer
             Color = SKColors.Black, IsAntialias = true, StrokeWidth = 1.5f, Style = SKPaintStyle.Stroke
         };
         using var textPaint = new SKPaint { Color = SKColors.Black, IsAntialias = true };
-        using var hourFont = new SKFont(SKTypeface.FromFamilyName("Arial"), 16);
+        using var hourFont = new SKFont(SKTypeface.FromFamilyName("Arial"), 14);
+        using var dayFont = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 32);
 
         canvas.DrawLine(LeftMargin, TimelineY, Width - RightMargin, TimelineY, linePaint);
 
-        for (int h = 0; h <= 24; h += 2)
+        for (int h = 0; h <= 48; h += 4)
         {
             float x = HourToX(h);
-            canvas.DrawLine(x, TimelineY - 8, x, TimelineY + 8, tickPaint);
-            canvas.DrawText(h.ToString(), x, TimelineY + 25, SKTextAlign.Center, hourFont, textPaint);
+            var usedPaint = (h % 24 == 0) ? linePaint : tickPaint;
+            canvas.DrawLine(x, TimelineY - 8, x, TimelineY + 8, usedPaint);
+            canvas.DrawText((h % 24).ToString("D2"), x, TimelineY + 25, SKTextAlign.Center, hourFont, textPaint);
         }
+
+        // Day labels
+        using var dayLabelPaint = new SKPaint { Color = SKColors.Black, IsAntialias = true };
+        float todayX = (HourToX(0) + HourToX(24)) / 2;
+        float tomorrowX = (HourToX(24) + HourToX(48)) / 2;
+        var today = now.Date;
+        var tomorrow = today.AddDays(1);
+        var todayLabel = $"Idag, {SwedishDateHelper.GetDayName(now.DayOfWeek).ToLower()} {today.Day} {SwedishDateHelper.GetMonthName(today.Month)}";
+        var tomorrowLabel = $"Imorgon, {SwedishDateHelper.GetDayName(tomorrow.DayOfWeek).ToLower()} {tomorrow.Day} {SwedishDateHelper.GetMonthName(tomorrow.Month)}";
+        canvas.DrawText(todayLabel, todayX, GraphBottom + 50, SKTextAlign.Center, dayFont, dayLabelPaint);
+        canvas.DrawText(tomorrowLabel, tomorrowX, GraphBottom + 50, SKTextAlign.Center, dayFont, dayLabelPaint);
     }
 
     private static void DrawTemperatureCurve(SKCanvas canvas, List<HourlyForecast> forecasts)
@@ -124,16 +130,16 @@ public static class WeatherImageRenderer
         using var paint = new SKPaint { Color = SKColors.Black, IsAntialias = true };
         using var tempFont = new SKFont(SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold), 28);
 
-        foreach (var f in forecasts.Where(f => f.Hour % 2 == 0))
+        foreach (var f in forecasts.Where(f => f.Hour % 4 == 0))
         {
             float x = HourToX(f.Hour);
             float y = TempToY(f.Temperature);
 
             bool aboveLine = f.Temperature >= 0;
-            float iconY = aboveLine ? y - 75 : y + 50;
-            WeatherIconRenderer.Draw(canvas, f.SymbolCode, x, iconY, 24);
+            float iconY = aboveLine ? y - 60 : y + 40;
+            WeatherIconRenderer.Draw(canvas, f.SymbolCode, x, iconY, 18);
 
-            float tempLabelY = aboveLine ? y - 30 : y + 100;
+            float tempLabelY = aboveLine ? y - 20 : y + 85;
             canvas.DrawText($"{f.Temperature:0}°", x, tempLabelY, SKTextAlign.Center, tempFont, paint);
         }
     }
@@ -153,7 +159,7 @@ public static class WeatherImageRenderer
         canvas.DrawLine(x, 40, x, Height - 40, paint);
     }
 
-    private static float HourToX(float hour) => LeftMargin + (hour / 24f) * TimelineWidth;
+    private static float HourToX(float hour) => LeftMargin + (hour / 48f) * TimelineWidth;
 
     private static float TempToY(float temp) => GraphBottom - ((temp - MinTemp) / (MaxTemp - MinTemp)) * (GraphBottom - GraphTop);
 }
