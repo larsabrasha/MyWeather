@@ -11,22 +11,45 @@ public static class WeatherImageRenderer
     private const float LeftMargin = 40f;
     private const float RightMargin = 40f;
     private const float TimelineWidth = Width - LeftMargin - RightMargin;
-    private const float MinTemp = -15f;
-    private const float MaxTemp = 35f;
+
+    // Fixed layout zones
     private const float GraphTop = 210f;
-    private const float GraphBottom = 700f;
-    private const float TimelineY = GraphBottom - (-MinTemp / (MaxTemp - MinTemp)) * (GraphBottom - GraphTop);
+    private const float GraphBottom = 560f;
+    private const float TimelineY = 620f;
+    private const float DayLabelY = 720f;
+
+    // Constant vertical scale: pixels per degree
+    private const float PixelsPerDegree = 8f;
+
+    private static float _minTemp;
+    private static float _maxTemp;
 
     public static byte[] Render(List<HourlyForecast> forecasts)
     {
         var now = DateTime.Now;
+
+        // Calculate temp range with constant scale, centered on data
+        float dataMin = forecasts.Min(f => f.Temperature);
+        float dataMax = forecasts.Max(f => f.Temperature);
+        float graphHeight = GraphBottom - GraphTop;
+        float degreesVisible = graphHeight / PixelsPerDegree;
+        float dataMid = (dataMin + dataMax) / 2f;
+
+        _minTemp = dataMid - degreesVisible / 2f;
+        _maxTemp = dataMid + degreesVisible / 2f;
+
+        // Ensure 0°C is always visible
+        if (_minTemp > 0) { _maxTemp += -_minTemp + 2; _minTemp = -2; }
+        if (_maxTemp < 0) { _minTemp -= _maxTemp + 2; _maxTemp = 2; }
 
         using var surface = SKSurface.Create(new SKImageInfo(Width, Height));
         var canvas = surface.Canvas;
         canvas.Clear(SKColors.White);
 
         DrawHeader(canvas, forecasts, now);
+        DrawZeroLine(canvas);
         DrawTimeline(canvas, now);
+        DrawPrecipitationBars(canvas, forecasts);
         DrawTemperatureCurve(canvas, forecasts);
         DrawHourlyMarkers(canvas, forecasts);
         DrawCurrentTimeLine(canvas, now);
@@ -85,8 +108,25 @@ public static class WeatherImageRenderer
         var tomorrow = today.AddDays(1);
         var todayLabel = $"Idag, {SwedishDateHelper.GetDayName(now.DayOfWeek).ToLower()} {today.Day} {SwedishDateHelper.GetMonthName(today.Month)}";
         var tomorrowLabel = $"Imorgon, {SwedishDateHelper.GetDayName(tomorrow.DayOfWeek).ToLower()} {tomorrow.Day} {SwedishDateHelper.GetMonthName(tomorrow.Month)}";
-        canvas.DrawText(todayLabel, todayX, GraphBottom + 50, SKTextAlign.Center, dayFont, dayLabelPaint);
-        canvas.DrawText(tomorrowLabel, tomorrowX, GraphBottom + 50, SKTextAlign.Center, dayFont, dayLabelPaint);
+        canvas.DrawText(todayLabel, todayX, DayLabelY, SKTextAlign.Center, dayFont, dayLabelPaint);
+        canvas.DrawText(tomorrowLabel, tomorrowX, DayLabelY, SKTextAlign.Center, dayFont, dayLabelPaint);
+    }
+
+    private static void DrawZeroLine(SKCanvas canvas)
+    {
+        float zeroY = TempToY(0);
+
+        using var paint = new SKPaint
+        {
+            Color = SKColors.Gray, IsAntialias = true, StrokeWidth = 1f,
+            Style = SKPaintStyle.Stroke,
+            PathEffect = SKPathEffect.CreateDash([4, 4], 0)
+        };
+        using var textPaint = new SKPaint { Color = SKColors.Gray, IsAntialias = true };
+        using var font = new SKFont(SKTypeface.FromFamilyName("Arial"), 14);
+
+        canvas.DrawLine(LeftMargin, zeroY, Width - RightMargin, zeroY, paint);
+        canvas.DrawText("0°", LeftMargin - 5, zeroY + 5, SKTextAlign.Right, font, textPaint);
     }
 
     private static void DrawTemperatureCurve(SKCanvas canvas, List<HourlyForecast> forecasts)
@@ -135,12 +175,8 @@ public static class WeatherImageRenderer
             float x = HourToX(f.Hour);
             float y = TempToY(f.Temperature);
 
-            bool aboveLine = f.Temperature >= 0;
-            float iconY = aboveLine ? y - 60 : y + 40;
-            WeatherIconRenderer.Draw(canvas, f.SymbolCode, x, iconY, 18);
-
-            float tempLabelY = aboveLine ? y - 20 : y + 85;
-            canvas.DrawText($"{f.Temperature:0}°", x, tempLabelY, SKTextAlign.Center, tempFont, paint);
+            WeatherIconRenderer.Draw(canvas, f.SymbolCode, x, y - 60, 18);
+            canvas.DrawText($"{f.Temperature:0}°", x, y - 20, SKTextAlign.Center, tempFont, paint);
         }
     }
 
@@ -156,10 +192,39 @@ public static class WeatherImageRenderer
             PathEffect = SKPathEffect.CreateDash([8, 4], 0)
         };
 
-        canvas.DrawLine(x, 40, x, Height - 40, paint);
+        canvas.DrawLine(x, GraphTop, x, TimelineY + 25, paint);
+    }
+
+    private static void DrawPrecipitationBars(SKCanvas canvas, List<HourlyForecast> forecasts)
+    {
+        const float maxPrecipMm = 10f;
+        const float maxBarHeight = 80f;
+        float barWidth = TimelineWidth / 48f;
+
+        using var barPaint = new SKPaint
+        {
+            Color = new SKColor(70, 130, 220, 160), IsAntialias = true, Style = SKPaintStyle.Fill
+        };
+        using var labelPaint = new SKPaint { Color = new SKColor(30, 80, 180), IsAntialias = true };
+        using var labelFont = new SKFont(SKTypeface.FromFamilyName("Arial"), 22);
+
+        foreach (var f in forecasts)
+        {
+            if (f.Precipitation <= 0) continue;
+
+            float height = Math.Min(f.Precipitation / maxPrecipMm, 1f) * maxBarHeight;
+            float x = HourToX(f.Hour);
+            canvas.DrawRect(x, TimelineY - height, barWidth, height, barPaint);
+
+            if (f.Precipitation >= 0.5f)
+            {
+                canvas.DrawText($"{f.Precipitation:0}", x + barWidth / 2, TimelineY - height - 3,
+                    SKTextAlign.Center, labelFont, labelPaint);
+            }
+        }
     }
 
     private static float HourToX(float hour) => LeftMargin + (hour / 48f) * TimelineWidth;
 
-    private static float TempToY(float temp) => GraphBottom - ((temp - MinTemp) / (MaxTemp - MinTemp)) * (GraphBottom - GraphTop);
+    private static float TempToY(float temp) => GraphBottom - ((temp - _minTemp) / (_maxTemp - _minTemp)) * (GraphBottom - GraphTop);
 }

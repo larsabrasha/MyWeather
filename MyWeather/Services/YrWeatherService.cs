@@ -58,16 +58,23 @@ public class YrWeatherService : IWeatherService
             var windSpeed = instant.GetProperty("wind_speed").GetSingle();
 
             var symbolCode = "cloudy";
+            float precipitation = 0;
             if (timeseries.GetProperty("data").TryGetProperty("next_1_hours", out var next1))
             {
                 symbolCode = next1.GetProperty("summary").GetProperty("symbol_code").GetString()!;
+                if (next1.TryGetProperty("details", out var details1) &&
+                    details1.TryGetProperty("precipitation_amount", out var precip1))
+                    precipitation = precip1.GetSingle();
             }
             else if (timeseries.GetProperty("data").TryGetProperty("next_6_hours", out var next6))
             {
                 symbolCode = next6.GetProperty("summary").GetProperty("symbol_code").GetString()!;
+                if (next6.TryGetProperty("details", out var details6) &&
+                    details6.TryGetProperty("precipitation_amount", out var precip6))
+                    precipitation = precip6.GetSingle();
             }
 
-            forecasts.Add(new HourlyForecast(hour, temperature, MapSymbolCode(symbolCode), windSpeed, symbolCode));
+            forecasts.Add(new HourlyForecast(hour, temperature, MapSymbolCode(symbolCode), windSpeed, symbolCode, precipitation));
         }
 
         return forecasts.OrderBy(f => f.Hour).ToList();
